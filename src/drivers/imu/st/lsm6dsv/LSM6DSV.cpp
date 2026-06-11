@@ -505,6 +505,24 @@ bool LSM6DSV::FIFORead(const hrt_abstime &timestamp_sample, uint16_t samples)
 		// Other tags (TIMESTAMP, etc.) are silently ignored
 	}
 
+	// correct frame for publication
+	for (int i = 0; i < gyro.samples; i++) {
+		// sensor's frame is +x forward, +y left, +z up
+		// flip y & z to publish right handed with z down (x forward, y right, z down)
+		gyro.x[i] = gyro.x[i];
+		gyro.y[i] = (gyro.y[i] == INT16_MIN) ? INT16_MAX : -gyro.y[i];
+		gyro.z[i] = (gyro.z[i] == INT16_MIN) ? INT16_MAX : -gyro.z[i];
+	}
+
+	// correct frame for publication
+	for (int i = 0; i < accel.samples; i++) {
+		// sensor's frame is +x forward, +y left, +z up
+		// flip y & z to publish right handed with z down (x forward, y right, z down)
+		accel.x[i] = accel.x[i];
+		accel.y[i] = (accel.y[i] == INT16_MIN) ? INT16_MAX : -accel.y[i];
+		accel.z[i] = (accel.z[i] == INT16_MIN) ? INT16_MAX : -accel.z[i];
+	}
+
 	// Publish
 	if (gyro.samples > 0) {
 		_px4_gyro.set_error_count(perf_event_count(_bad_register_perf) + perf_event_count(_bad_transfer_perf) +
