@@ -276,6 +276,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_statustext(msg);
 		break;
 
+	case MAVLINK_MSG_ID_OPEN_DRONE_ID_BASIC_ID:
+		handle_message_open_drone_id_basic_id(msg);
+		break;
+
 	case MAVLINK_MSG_ID_OPEN_DRONE_ID_OPERATOR_ID:
 		handle_message_open_drone_id_operator_id(msg);
 		break;
@@ -537,6 +541,7 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	case MAV_CMD_NAV_VTOL_TAKEOFF:                       // 84
 	case MAV_CMD_DO_SET_HOME:                            // 179
 	case MAV_CMD_DO_LAND_START:                          // 189
+	case MAV_CMD_DO_REPOSITION:                          // 192
 	case MAV_CMD_DO_SET_ROI_LOCATION:                    // 195
 	case MAV_CMD_DO_SET_ROI:                             // 201
 	case MAV_CMD_PAYLOAD_PREPARE_DEPLOY:                 // 30001
@@ -557,7 +562,6 @@ MavlinkReceiver::command_has_location(uint16_t command)
 	// case MAV_CMD_NAV_VTOL_LAND:                       // 85
 	// case MAV_CMD_NAV_PAYLOAD_PLACE:                   // 94
 	// case MAV_CMD_DO_RETURN_PATH_START:                // 188
-	// case MAV_CMD_DO_REPOSITION:                       // 192
 	// case MAV_CMD_OVERRIDE_GOTO:                       // 252
 	// case MAV_CMD_SET_GUIDED_SUBMODE_CIRCLE:           // 4001
 	// case MAV_CMD_CONDITION_GATE:                      // 4501
@@ -731,11 +735,11 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 
 				switch (vehicle_status.vehicle_type) {
 				case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
-					has_module = param_find("FW_AT_APPLY");
+					has_module = param_find("FW_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
-					has_module = param_find("MC_AT_APPLY");
+					has_module = param_find("MC_AT_APPLY") != PARAM_INVALID;
 					break;
 
 				default:
@@ -3534,6 +3538,27 @@ MavlinkReceiver::handle_message_gimbal_device_attitude_status(mavlink_message_t 
 	gimbal_attitude_status.gimbal_device_id = gimbal_device_attitude_status_msg.gimbal_device_id;
 
 	_gimbal_device_attitude_status_pub.publish(gimbal_attitude_status);
+}
+
+void MavlinkReceiver::handle_message_open_drone_id_basic_id(mavlink_message_t *msg)
+{
+	mavlink_open_drone_id_basic_id_t odid_module {};
+	mavlink_msg_open_drone_id_basic_id_decode(msg, &odid_module);
+
+	if (odid_module.target_system != mavlink_system.sysid ||
+	    (odid_module.target_component != mavlink_system.compid && odid_module.target_component != MAV_COMP_ID_ALL)) {
+		return;
+	}
+
+	open_drone_id_basic_id_s odid_basic_id {};
+
+	odid_basic_id.timestamp = hrt_absolute_time();
+	memcpy(odid_basic_id.id_or_mac, odid_module.id_or_mac, sizeof(odid_basic_id.id_or_mac));
+	odid_basic_id.id_type = odid_module.id_type;
+	odid_basic_id.ua_type = odid_module.ua_type;
+	memcpy(odid_basic_id.uas_id, odid_module.uas_id, sizeof(odid_basic_id.uas_id));
+
+	_open_drone_id_basic_id_pub.publish(odid_basic_id);
 }
 
 void MavlinkReceiver::handle_message_open_drone_id_operator_id(

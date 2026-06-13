@@ -941,8 +941,7 @@ FixedWingModeManager::control_auto_loiter(const float control_interval, const Ve
 	Vector2f curr_wp_local{_global_local_proj_ref.project(curr_wp(0), curr_wp(1))};
 	Vector2f vehicle_to_loiter_center{curr_wp_local - curr_pos_local};
 
-	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(
-					     500);
+	const bool close_to_circle = vehicle_to_loiter_center.norm() < loiter_radius + _directional_guidance.switchDistance(500);
 
 	bool enforce_low_height{false};
 
@@ -2152,7 +2151,7 @@ FixedWingModeManager::Run()
 						Vector2f acceleration_sp_2d(trajectory_setpoint.acceleration[0], trajectory_setpoint.acceleration[1]);
 						Vector2f acceleration_normal = acceleration_sp_2d - acceleration_sp_2d.dot(normalized_velocity_sp_2d) *
 									       normalized_velocity_sp_2d;
-						float direction = -normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
+						float direction = normalized_velocity_sp_2d.cross(acceleration_normal.normalized());
 						_pos_sp_triplet.current.loiter_radius = direction * velocity_sp_2d.norm() * velocity_sp_2d.norm() /
 											acceleration_normal.norm();
 
@@ -2772,6 +2771,7 @@ void FixedWingModeManager::publish_lateral_guidance_status(const hrt_abstime now
 	fixed_wing_lateral_guidance_status.bearing_feas_on_track = _directional_guidance.getBearingFeasibilityOnTrack();
 	fixed_wing_lateral_guidance_status.signed_track_error = _directional_guidance.getSignedTrackError();
 	fixed_wing_lateral_guidance_status.track_error_bound = _directional_guidance.getTrackErrorBound();
+	fixed_wing_lateral_guidance_status.switch_distance = _directional_guidance.switchDistance(500.0f);
 	fixed_wing_lateral_guidance_status.adapted_period = _directional_guidance.getAdaptedPeriod();
 	fixed_wing_lateral_guidance_status.wind_est_valid = _wind_valid;
 
